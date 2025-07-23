@@ -36,7 +36,7 @@ basekit.addField({
   authorizations: [
     {
       id: 'auth_id_1',
-      platform: 'xunke',
+      platform: 'xunkecloud',
       type: AuthorizationType.HeaderBearerToken,
       required: true,
       instructionsUrl: "http://api.xunkecloud.cn/login",
@@ -115,12 +115,14 @@ basekit.addField({
 
       
       
-      const taskResp = await context.fetch('https://open.feishu.cn/anycross/trigger/callback/MDk0YzAxMmYzNmI1ODY5OGU1ODBjMDM0M2JiZjE5NjZh', requestOptions, 'auth_id_1');
+      const taskResp = await context.fetch('http://api.xunkecloud.cn/v1/images/generations', requestOptions, 'auth_id_1').then(res => res.json());
+      
+      debugLog(
+        {'=1 视频创建接口结果':taskResp}
+      )
 
       const initialResult = await taskResp.json();
-      console.log('initialResult', initialResult);
       
-
       const taskId = (initialResult as { id: string }).id;
 
       if(!taskId){
@@ -129,7 +131,6 @@ basekit.addField({
       }
       }
 
-      console.log('taskId', taskId);
 
       const apiUrl = `https://api.chatfire.cn/veo/v1/videos/generations?id=${taskId}`;
       
@@ -138,7 +139,11 @@ basekit.addField({
           headers: {
             'Authorization': 'Bearer sk-fEYjuVld8fnsycc3XIe5jGJuFW4fMpR0kbIKLmtKpIgsBvu1'
           }
-        });
+        })
+
+         debugLog(
+        {'=1 视频结果查询结果':response}
+      )
         const result = await response.json();
         
         if (result && typeof result === 'object' && 'video_url' in result && typeof result.video_url === 'string') {
@@ -159,7 +164,6 @@ basekit.addField({
         link: videoUrl
       }
     ]
-      console.log(url);
       
       
         return {
