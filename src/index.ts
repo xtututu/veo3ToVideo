@@ -102,21 +102,20 @@ basekit.addField({
     // 翻译视频提示词为英文
     try {
     
-      // 提取请求参数并打印
-      const requestOptions = {
-        method: 'POST',
-        body: JSON.stringify({
-        model: 'veo3',
-          "prompt": videoPrompt,
-          ...(refImage && refImage.length > 0 ? { "images": [refImage[0].tmp_url] } : {}),
-            "enhance_prompt": true
-        })
-      };
-
-      
-      
-      const taskResp = await context.fetch('http://api.xunkecloud.cn/v1/images/generations', requestOptions, 'auth_id_1').then(res => res.json());
-      
+     const createVideoUrl = `http://api.xunkecloud.cn/v1/images/generations`;
+            // 打印API调用参数信息
+            console.log('API URL:', createVideoUrl);
+            const requestOptions = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'veo3',
+                    "prompt": videoPrompt,
+                    ...(refImage && refImage.length > 0 ? { "images": [refImage[0].tmp_url] } : {}),
+                    "enhance_prompt": true
+                })
+            };
+            const taskResp = await context.fetch(createVideoUrl, requestOptions, 'auth_id_1');
       debugLog(
         {'=1 视频创建接口结果':taskResp}
       )
