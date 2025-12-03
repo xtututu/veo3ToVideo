@@ -133,7 +133,7 @@ basekit.addField({
 
     
     // 常量定义
-    const API_BASE_URL = 'http://test.xunkecloud.cn/v1/videos';
+    const API_BASE_URL = 'http://api.xunkecloud.cn/v1/videos';
     const POLLING_INTERVAL = 5000; // 5秒间隔
     const MAX_POLLING_TIME = 900000; // 900秒最大等待时间
 
