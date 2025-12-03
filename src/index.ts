@@ -1,7 +1,7 @@
 import { basekit, FieldType, field, FieldComponent, FieldCode, NumberFormatter, AuthorizationType } from '@lark-opdev/block-basekit-server-api';
 const { t } = field;
 
-const feishuDm = ['feishu.cn', 'feishucdn.com', 'larksuitecdn.com', 'larksuite.com','api.chatfire.cn','api.xunkecloud.cn'];
+const feishuDm = ['feishu.cn', 'feishucdn.com', 'larksuitecdn.com', 'larksuite.com','api.chatfire.cn','api.xunkecloud.cn','test.xunkecloud.cn'];
 // 通过addDomainList添加请求接口的域名，不可写多个addDomainList，否则会被覆盖
 basekit.addDomainList([...feishuDm, 'api.exchangerate-api.com',]);
 
@@ -10,25 +10,26 @@ basekit.addField({
    i18n: {
     messages: {
       'zh-CN': {
-        'videoMethod': '视频生成方式',
-        'metLabelOne': '文生视频',
-        'metLabelTwo': '图生视频',
+        'videoMethod': '模型选择',
         'videoPrompt': '视频提示词',
         'refImage': '参考图片',
+        'seconds': '视频时长',
+        'size': '视频尺寸',
       },
       'en-US': {
-        'videoMethod': 'Video generation method',
-        'metLabelOne': 'Text-to-video',
-        'metLabelTwo': 'Image-to-video',
+        'videoMethod': 'Model selection',
         'videoPrompt': 'Video prompt',
         'refImage': 'Reference image',
+        'seconds': 'Video duration',
+        'size': 'Video size',   
       },
       'ja-JP': {
-         'videoMethod': 'ビデオ生成方式',
-        'metLabelOne': 'テキスト-to-ビデオ',
-        'metLabelTwo': 'イメージ-to-ビデオ',
+        'videoMethod': 'モデル選択',
+        
         'videoPrompt': 'ビデオ提示词',
         'refImage': '参考画像',
+        'seconds': 'ビデオ再生時間',
+        'size': 'ビデオサイズ',   
       },
     }
   },
@@ -52,12 +53,13 @@ basekit.addField({
     {
       key: 'videoMethod',
       label: t('videoMethod'),
-      component: FieldComponent.Radio,
-      defaultValue: { label: t('metLabelOne'), value: 'textToVideo'},
+      component: FieldComponent.SingleSelect,
+      defaultValue: { label: t('veo3.1'), value: 'veo3.1'},
       props: {
         options: [
-          { label: t('metLabelOne'), value: 'textToVideo'},
-          { label: t('metLabelTwo'), value: 'imageToVideo'},
+          { label: 'veo3', value: 'veo3'},
+           { label: 'veo3.1', value: 'veo3.1'},
+          { label: 'veo3.1-pro', value: 'veo3.1-pro'},
         ]
       },
     },
@@ -67,7 +69,6 @@ basekit.addField({
       component: FieldComponent.Input,
       props: {
         placeholder: '请输入视频提示词',
-
       },
       validator: {
         required: true,
@@ -81,15 +82,45 @@ basekit.addField({
         supportType: [FieldType.Attachment],
       }
     },
+    {
+      key: 'seconds',
+      label: t('seconds'),
+      component: FieldComponent.SingleSelect,
+      defaultValue: { label: t('12'), value: '12'},
+      props: {
+        options: [
+          { label: '12', value: '12'},
+          { label: '8', value: '8'},
+           { label: '4', value: '4'},
+          
+        ]
+      },
+    }
+    ,
+    {
+      key: 'size',
+      label: t('size'),
+      component: FieldComponent.SingleSelect,
+      defaultValue: { label: t('720x1280'), value: '720x1280'},
+      props: {
+        options: [
+           { label: '720x1280', value: '720x1280'},
+          { label: '1280x720', value: '1280x720'},
+          { label: '1024x1792', value: '1024x1792'},
+          { label: '1792x1024', value: '1792x1024'},
+
+        ]
+      },
+    },
     
   ],
   // 定义捷径的返回结果类型
   resultType: {
     type: FieldType.Attachment
   },
-  execute: async (formItemParams: { videoMethod: string, videoPrompt: string, refImage: any }, context) => {
-    const { videoMethod = '', videoPrompt = '', refImage = '' } = formItemParams;
-    let englishPrompt = videoPrompt; // 添加变量声明
+   execute: async (formItemParams: { videoMethod: any, videoPrompt: string, refImage: any,seconds:any,size:any }, context) => {
+    const { videoMethod = '', videoPrompt = '', refImage = '',seconds='',size='' } = formItemParams;
+
 
      /** 为方便查看日志，使用此方法替代console.log */
     function debugLog(arg: any) {
@@ -99,109 +130,132 @@ basekit.addField({
         ...arg
       }))
     }
-    // 翻译视频提示词为英文
-    try {
+
     
-     const createVideoUrl = `http://api.xunkecloud.cn/v1/images/generations`;
-            // 打印API调用参数信息
-            console.log('API URL:', createVideoUrl);
-            const requestOptions = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: 'veo3',
-                    "prompt": videoPrompt,
-                    ...(refImage && refImage.length > 0 ? { "images": [refImage[0].tmp_url] } : {}),
-                    "enhance_prompt": true
-                })
-            };
-            const taskResp = await context.fetch(createVideoUrl, requestOptions, 'auth_id_1');
-      debugLog(
-        {'=1 视频创建接口结果':taskResp}
-      )
+    // 常量定义
+    const API_BASE_URL = 'http://test.xunkecloud.cn/v1/videos';
+    const POLLING_INTERVAL = 5000; // 5秒间隔
+    const MAX_POLLING_TIME = 900000; // 900秒最大等待时间
 
-      const initialResult = await taskResp.json();
-      
-      const taskId = (initialResult as { id: string }).id;
+    // 错误视频URL配置
+    const ERROR_VIDEOS = {
+      DEFAULT: 'https://pay.xunkecloud.cn/image/Wrong.mp4',
+      OVERRUN: 'https://pay.xunkecloud.cn/image/Overrun.mp4',
+      NO_CHANNEL: 'https://pay.xunkecloud.cn/image/unusual.mp4',
+      INSUFFICIENT: 'https://pay.xunkecloud.cn/image/Insufficient.mp4',
+      INVALID_TOKEN: 'https://pay.xunkecloud.cn/image/tokenError.mp4'
+    };
 
-      if(!taskId){
-        return {
-        code: FieldCode.Error,
-      }
-      }
+    // 创建错误响应的辅助函数
+    const createErrorResponse = (name: string, videoUrl: string) => ({
+      code: FieldCode.Success,
+      data: [{
+        name: `${name}.mp4`,
+        content: videoUrl,
+        contentType: 'attachment/url'
+      }]
+    });
 
-
-      const apiUrl = `https://api.chatfire.cn/veo/v1/videos/generations?id=${taskId}`;
-      
-      let checkUrl = async () => {
-        const response = await fetch(apiUrl, {
-          headers: {
-            'Authorization': 'Bearer sk-fEYjuVld8fnsycc3XIe5jGJuFW4fMpR0kbIKLmtKpIgsBvu1'
-          }
-        })
-
-         debugLog(
-        {'=1 视频结果查询结果':response}
-      )
-        const result = await response.json();
-        
-        if (result && typeof result === 'object' && 'video_url' in result && typeof result.video_url === 'string') {
-          return result.video_url;
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 15000));
-          return checkUrl();
-        }
-        
-       
+    try {
+      // 构建请求体
+      const requestBody: any = {
+        model: videoMethod.value,
+        prompt: videoPrompt,
+        seconds: seconds.value,
+        size: size.value
       };
-      
-      const videoUrl = await checkUrl();
-      let url = [
-      {
-        type: 'url',
-        text: englishPrompt,
-        link: videoUrl
-      }
-    ]
-      
-      
-        return {
-          code: FieldCode.Success, // 0 表示请求成功
-          // data 类型需与下方 resultType 定义一致
-          data: (url.map(({ link }, index) => {
-            console.log(link);
-            
-            if (!link || typeof link !== 'string') {
-              return undefined
+
+      // 如果refImage存在且有第一个元素的tmp_url，则添加input_reference参数
+      if (refImage && refImage.length > 0) {
+                requestBody.input_reference = refImage
+                    .filter(item => item && item.tmp_url) // 过滤出有tmp_url的元素
+                    .map(item => item.tmp_url.trim()); // 去除可能的空格并提取tmp_url
             }
-            const name = link.split('/').slice(-1)[0];
-            return {
-              name: '随机名字' + index + name+'.mp4',
-              content: link,
-              contentType: "attachment/url"
-            }
-          })).filter((v) => v)
+
+      // 创建视频生成任务
+      const createTask = await context.fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      }, 'auth_id_1');
+
+      const taskResp = await createTask.json();
+      debugLog({ taskId: taskResp.id, message: '视频生成任务已创建' });
+
+      // 检查任务ID是否返回
+      if (taskResp?.id) {
+        // 轮询获取视频详情
+        const videoDetailUrl = `${API_BASE_URL}/${taskResp.id}`;
+        const detailRequestOptions = {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
         };
 
-      // 请避免使用 debugLog(url) 这类方式输出日志，因为所查到的日志是没有顺序的，为方便排查错误，对每个log进行手动标记顺序
-      debugLog({
-        '===1 url为空': url
-      });
-      return {
-        code: FieldCode.Error,
-      };
-   
-    } catch (e) {
-      console.log('====error', String(e));
-      debugLog({
-        '===999 异常错误': String(e)
-      });
-      /** 返回非 Success 的错误码，将会在单元格上显示报错，请勿返回msg、message之类的字段，它们并不会起作用。
-       * 对于未知错误，请直接返回 FieldCode.Error，然后通过查日志来排查错误原因。
-       */
-      return {
-        code: FieldCode.Error,
+        const startTime = Date.now();
+        let videoDetailResp: any;
+        let isPollingComplete = false;
+
+          debugLog("开始轮询任务");
+        // 轮询逻辑
+        while (!isPollingComplete && (Date.now() - startTime) < MAX_POLLING_TIME) {
+          const getTaskDetail = await context.fetch(videoDetailUrl, detailRequestOptions, 'auth_id_1');
+          videoDetailResp = await getTaskDetail.json();
+          
+          // 检查状态
+          if (videoDetailResp?.status === 'failed') {
+            debugLog({ message: '视频生成失败', errorType: '官方错误，提示词/图片违规' });
+            return createErrorResponse('官方错误，提示词/图片违规', ERROR_VIDEOS.DEFAULT);
+          } else if (videoDetailResp?.status === 'completed') {
+            isPollingComplete = true;
+            debugLog({ message: '视频生成完成' });
+          } else {
+            // 未完成，等待后继续轮询
+            await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
+          }
+        }
+
+        // 检查是否超时
+        if (!isPollingComplete) {
+          debugLog({ message: '视频生成超时', errorType: '轮询超时' });
+          return {
+            code: FieldCode.Error,
+            data: createErrorResponse('捷径异常', ERROR_VIDEOS.OVERRUN).data
+          };
+        }
+
+        // 提取视频URL并返回成功响应
+        const videoUrl = videoDetailResp?.video_url || '';
+        return {
+          code: FieldCode.Success,
+          data: [{
+            name: `${videoPrompt}.mp4`,
+            content: videoUrl,
+            contentType: 'attachment/url'
+          }]
+        };
+      } else {
+        throw new Error(taskResp?.error?.message || '任务创建失败，未返回任务ID');
       }
+    } catch (error: any) {
+      const errorMessage = String(error);
+      debugLog({ '异常错误': errorMessage });
+
+      // 根据错误类型返回相应的错误视频
+      if (errorMessage.includes('无可用渠道')) {
+        debugLog({ message: '无可用渠道', errorType: '渠道错误', errorMessage });
+        return createErrorResponse('捷径异常', ERROR_VIDEOS.NO_CHANNEL);
+      } else if (errorMessage.includes('令牌额度已用尽')) {
+        debugLog({ message: '令牌额度已用尽', errorType: '余额不足', errorMessage });
+        return createErrorResponse('余额耗尽', ERROR_VIDEOS.INSUFFICIENT);
+      } else if (errorMessage.includes('无效的令牌')) {
+        debugLog({ message: '无效的令牌', errorType: '令牌错误', errorMessage });
+        return createErrorResponse('无效的令牌', ERROR_VIDEOS.INVALID_TOKEN);
+      }
+
+      // 未知错误
+      return {
+        code: FieldCode.Error
+      };
     }
   }
 });
