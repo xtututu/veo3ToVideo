@@ -15,6 +15,8 @@ basekit.addField({
         'refImage': '参考图片',
         'seconds': '视频时长',
         'size': '视频尺寸',
+        'modelBrand':t('modelBrand') +' '
+
       },
       'en-US': {
         'videoMethod': 'Model selection',
@@ -22,6 +24,7 @@ basekit.addField({
         'refImage': 'Reference image',
         'seconds': 'Video duration',
         'size': 'Video size',   
+        'modelBrand':'Xunke'
       },
       'ja-JP': {
         'videoMethod': 'モデル選択',
@@ -30,6 +33,7 @@ basekit.addField({
         'refImage': '参考画像',
         'seconds': 'ビデオ再生時間',
         'size': 'ビデオサイズ',   
+        'modelBrand':t('modelBrand') +' '
       },
     }
   },
@@ -54,12 +58,12 @@ basekit.addField({
       key: 'videoMethod',
       label: t('videoMethod'),
       component: FieldComponent.SingleSelect,
-      defaultValue: { label: t('veo3.1'), value: 'veo3.1'},
+      defaultValue: { label: t('modelBrand') +' Ve3', value: 'veo3.1'},
       props: {
         options: [
-          { label: 'veo3', value: 'veo3'},
-           { label: 'veo3.1', value: 'veo3.1'},
-          { label: 'veo3.1-pro', value: 'veo3.1-pro'},
+          { label: t('modelBrand') +' Ve3', value: 'veo3'},
+          { label: t('modelBrand') +' Ve3.1', value: 'veo3.1'},
+          { label: t('modelBrand') +' Ve3.1-pro', value: 'veo3.1-pro'},
         ]
       },
     },
