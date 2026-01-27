@@ -15,7 +15,7 @@ basekit.addField({
         'refImage': '参考图片',
         'seconds': '视频时长',
         'size': '视频尺寸',
-        'modelBrand':t('modelBrand') +' '
+        'modelBrand':'迅客'
 
       },
       'en-US': {
@@ -33,7 +33,7 @@ basekit.addField({
         'refImage': '参考画像',
         'seconds': 'ビデオ再生時間',
         'size': 'ビデオサイズ',   
-        'modelBrand':t('modelBrand') +' '
+        'modelBrand':'Xunke'
       },
     }
   },
