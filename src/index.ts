@@ -232,26 +232,26 @@ basekit.addField({
         return {
           code: FieldCode.Success,
           data: [{
-            name: `${videoPrompt}.mp4`,
+            name: `veide.mp4`,
             content: videoUrl,
             contentType: 'attachment/url'
           }]
         };
       } else {
-        throw new Error(taskResp?.error?.message || '任务创建失败，未返回任务ID');
+        throw new Error(taskResp?.error?.message ||taskResp?.message);
       }
     } catch (error: any) {
       const errorMessage = String(error);
       debugLog({ '异常错误': errorMessage });
 
       // 根据错误类型返回相应的错误视频
-      if (errorMessage.includes('无可用渠道')) {
+      if (errorMessage.includes('渠道')) {
         debugLog({ message: '无可用渠道', errorType: '渠道错误', errorMessage });
         return createErrorResponse('捷径异常', ERROR_VIDEOS.NO_CHANNEL);
-      } else if (errorMessage.includes('令牌额度已用尽')) {
+      } else if (errorMessage.includes('额度')||errorMessage.includes('余额')||errorMessage.includes('quota')) {
         debugLog({ message: '令牌额度已用尽', errorType: '余额不足', errorMessage });
         return createErrorResponse('余额耗尽', ERROR_VIDEOS.INSUFFICIENT);
-      } else if (errorMessage.includes('无效的令牌')) {
+      } else if (errorMessage.includes('令牌')) {
         debugLog({ message: '无效的令牌', errorType: '令牌错误', errorMessage });
         return createErrorResponse('无效的令牌', ERROR_VIDEOS.INVALID_TOKEN);
       }
